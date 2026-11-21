@@ -1,0 +1,4 @@
+# /etc/caddy/Caddyfile - Caddy fetches and renews the HTTPS certificate automatically.
+retromc512.duckdns.org {
+	reverse_proxy localhost:8080
+}
