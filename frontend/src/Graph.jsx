@@ -301,11 +301,6 @@ export default function Graph({ me, images }) {
         <Button size="xs" variant="default" onClick={() => arrange()}>Reset</Button>
         {admin && <Button size="xs" variant={connect ? 'filled' : 'default'} onClick={() => setConnect((c) => !c)}>{connect ? 'Connecting…' : 'Connect'}</Button>}
       </Group>
-      <div className="ghint">
-        {connect
-          ? 'Drag from a drawing to the one that comes after it. Click Connecting… to finish.'
-          : `Scroll or drag to move around, ctrl+scroll or pinch to zoom. Shift-drag to box-select, shift-click to add to the selection, then drag to move them together (Reset puts everything back).${admin ? ' Right-click (or long-press) a drawing to label the branch that starts there. Click a line to remove it. Unconnected drawings are only shown to you.' : ''}`}
-      </div>
     </div>
   )
 }

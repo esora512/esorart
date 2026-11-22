@@ -41,7 +41,6 @@ a { color: var(--mantine-color-blue-4); }
 .gscroll { position: absolute; top: 8px; bottom: 8px; right: 4px; width: 14px; border-radius: 7px; background: rgb(255 255 255 / 4%); touch-action: none; cursor: pointer; z-index: 2; }
 .gthumb { width: 100%; border-radius: 7px; background: var(--mantine-color-dark-3); opacity: 0.7; cursor: grab; }
 .gthumb:hover, .gthumb:active { opacity: 1; }
-.ghint { position: absolute; top: 8px; left: 16px; right: 16px; z-index: 1; font-size: 12px; color: var(--mantine-color-dimmed); pointer-events: none; }
 
 /* admin */
 .preview { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px; }
