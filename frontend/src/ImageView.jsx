@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
 import { Badge, Button, CloseButton, Divider, Group, Paper, SegmentedControl, Stack, Switch, Text, Textarea, Title } from '@mantine/core'
 import { mutate as refresh } from 'swr'
@@ -36,6 +36,7 @@ function Shape({ s, color, n, active }) {
 export default function ImageView({ me, images }) {
   const { id } = useParams()
   const go = useNavigate()
+  const loc = useLocation()
   const { data: comments, mutate } = useApi(`/images/${id}/comments`)
   const [tool, setTool] = useState('')
   const [draft, setDraft] = useState(null)
@@ -46,6 +47,20 @@ export default function ImageView({ me, images }) {
   const [editing, setEditing] = useState(false)
   const svg = useRef()
   const drawing = useRef(false)
+
+  // back to wherever you came from (feed or graph); straight to the feed if this page was opened directly
+  const exit = () => (loc.key !== 'default' ? go(-1) : go('/'))
+  const keys = useRef()
+  keys.current = (e) => {
+    if (e.key !== 'Escape' || e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return
+    if (tool || draft) { setTool(''); setDraft(null) } else if (editing) setEditing(false)
+    else exit()
+  }
+  useEffect(() => {
+    const key = (e) => keys.current(e)
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [])
 
   const image = images?.find((i) => i.id === +id)
   if (!image) return null
@@ -78,6 +93,7 @@ export default function ImageView({ me, images }) {
   return (
     <div className="viewer">
       <div className="stage-wrap">
+        <Button className="exit" size="xs" variant="default" onClick={exit} title="Back (Esc)">← Back</Button>
         <TransformWrapper disabled={!!tool} doubleClick={{ mode: 'reset' }}>
           <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }} contentStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="stage">

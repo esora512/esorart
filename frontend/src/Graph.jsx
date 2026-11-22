@@ -45,6 +45,17 @@ function treeLayout(images, shown) {
   return pos
 }
 
+// vertical scroll position of the graph: `at` px scrolled past the top, `max` px it can go
+const vscroll = (cy) => {
+  const b = cy.nodes().renderedBoundingBox()
+  return { at: PAD - b.y1, max: b.h + 2 * PAD - cy.height() }
+}
+const scrollTo = (cy, s, animate = false) => {
+  const { at, max } = vscroll(cy), dy = at - Math.max(0, Math.min(max, s))
+  if (animate) cy.stop().animate({ panBy: { x: 0, y: dy }, duration: 300 })
+  else cy.panBy({ x: 0, y: dy })
+}
+
 const css = (name, fallback) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 const labelAt = (p) => p && { x: p.x, y: p.y - H / 2 + 16 }
@@ -96,6 +107,7 @@ export default function Graph({ me, images }) {
   const navigate = useNavigate()
   const go = useRef(navigate)
   go.current = navigate
+  const track = useRef(null), thumb = useRef(null)
   const box = useRef(null), cyRef = useRef(null), ehRef = useRef(null), shape = useRef(''), target = useRef({})
   const [connect, setConnect] = useState(false)
   const connectRef = useRef(false)
@@ -118,6 +130,40 @@ export default function Graph({ me, images }) {
     animate ? cy.animate({ zoom, pan, duration: 300 }) : cy.viewport({ zoom, pan })
   }
   const fitAll = () => cyRef.current?.animate({ fit: { padding: PAD }, duration: 300 })
+  const toStart = () => cyRef.current && scrollTo(cyRef.current, 0, true)
+  const toEnd = () => cyRef.current && scrollTo(cyRef.current, Infinity, true)
+
+  // keys: ↑/↓ = about a day, PageUp/PageDown = a screen, Home/End = start/end
+  useEffect(() => {
+    const key = (e) => {
+      const cy = cyRef.current, el = e.target
+      if (!cy || e.altKey || e.ctrlKey || e.metaKey || el.closest?.('input, textarea, select, [contenteditable="true"]')) return
+      const page = cy.height() * 0.85, step = Math.max(60, DAY * cy.zoom()), { at } = vscroll(cy)
+      const to = { ArrowUp: at - step, ArrowDown: at + step, PageUp: at - page, PageDown: at + page, Home: 0, End: Infinity }[e.key]
+      if (to === undefined) return
+      e.preventDefault()
+      scrollTo(cy, to, true)
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [])
+
+  // scroll bar: drag the thumb, or click the track to jump there
+  const thumbDown = (e) => {
+    const cy = cyRef.current
+    e.stopPropagation(); e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const start = { y: e.clientY, at: vscroll(cy).at }
+    const room = track.current.clientHeight - thumb.current.offsetHeight
+    const move = (m) => scrollTo(cy, start.at + ((m.clientY - start.y) * vscroll(cy).max) / room)
+    const up = () => { e.target.removeEventListener('pointermove', move); e.target.removeEventListener('pointerup', up) }
+    e.target.addEventListener('pointermove', move)
+    e.target.addEventListener('pointerup', up)
+  }
+  const trackDown = (e) => {
+    const cy = cyRef.current, t = track.current.getBoundingClientRect(), h = thumb.current.offsetHeight
+    scrollTo(cy, ((e.clientY - t.top - h / 2) / (t.height - h)) * vscroll(cy).max, true)
+  }
 
   // create the graph once
   useEffect(() => {
@@ -158,6 +204,18 @@ export default function Graph({ me, images }) {
       const keep = (lo, hi, size) => (hi - lo + 2 * PAD <= size ? 0 : lo > PAD ? PAD - lo : hi < size - PAD ? size - PAD - hi : 0)
       cy.panBy({ x: keep(b.x1, b.x2, cy.width()), y: keep(b.y1, b.y2, cy.height()) })
     }
+    // keep the scroll bar in step with whatever moved the view
+    cy.on('render', () => {
+      const t = track.current, th = thumb.current
+      if (!t) return
+      const { at, max } = vscroll(cy), H = t.clientHeight
+      t.style.display = max > 1 ? '' : 'none'
+      if (max <= 1) return
+      const h = Math.max(32, (H * cy.height()) / (max + cy.height()))
+      th.style.height = `${h}px`
+      th.style.transform = `translateY(${(H - h) * Math.min(1, Math.max(0, at / max))}px)`
+    })
+
     const host = box.current.parentElement
     host.addEventListener('wheel', wheel, { capture: true, passive: false })
 
@@ -232,7 +290,12 @@ export default function Graph({ me, images }) {
   return (
     <div className="graph">
       <div ref={box} className="gcanvas" />
+      <div ref={track} className="gscroll" onPointerDown={trackDown}>
+        <div ref={thumb} className="gthumb" onPointerDown={thumbDown} />
+      </div>
       <Group className="gtools" gap="xs">
+        <Button size="xs" variant="default" onClick={toStart} title="Start (Home)">↑ Start</Button>
+        <Button size="xs" variant="default" onClick={toEnd} title="End (End)">↓ End</Button>
         <Button size="xs" variant="default" onClick={fitAll}>Fit all</Button>
         <Button size="xs" variant="default" onClick={() => fitWidth()}>Fit width</Button>
         <Button size="xs" variant="default" onClick={() => arrange()}>Reset</Button>

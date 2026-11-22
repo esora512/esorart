@@ -157,9 +157,10 @@ def images(_=Depends(user)):
 
 def jpeg(im, size):
     im = im.copy()
+    im.info = {}  # carry over nothing from the upload (Pillow keeps e.g. JPEG comments otherwise)
     im.thumbnail((size, size))
     b = io.BytesIO()
-    im.save(b, "JPEG", quality=85, optimize=True)  # re-encoding drops EXIF (incl. GPS location)
+    im.save(b, "JPEG", quality=85, optimize=True)  # fresh encode: no EXIF (incl. GPS location), XMP or comments
     return b.getvalue()
 
 

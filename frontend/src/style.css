@@ -17,7 +17,8 @@ a { color: var(--mantine-color-blue-4); }
 
 /* image + feedback */
 .viewer { display: grid; grid-template-columns: 1fr var(--side); height: calc(100dvh - var(--top)); }
-.stage-wrap { min-width: 0; min-height: 0; background: #000; }
+.stage-wrap { min-width: 0; min-height: 0; background: #000; position: relative; }
+.exit { position: absolute; top: 8px; left: 8px; z-index: 5; }
 .stage { position: relative; line-height: 0; }
 .stage img { display: block; user-select: none; max-width: calc(100vw - var(--side)); max-height: calc(100dvh - var(--top)); }
 .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
@@ -36,7 +37,10 @@ a { color: var(--mantine-color-blue-4); }
 /* graph */
 .graph { height: calc(100dvh - var(--top)); position: relative; }
 .gcanvas { position: absolute; inset: 0; }
-.gtools { position: absolute; right: 16px; bottom: 16px; }
+.gtools { position: absolute; right: 28px; bottom: 16px; }
+.gscroll { position: absolute; top: 8px; bottom: 8px; right: 4px; width: 14px; border-radius: 7px; background: rgb(255 255 255 / 4%); touch-action: none; cursor: pointer; z-index: 2; }
+.gthumb { width: 100%; border-radius: 7px; background: var(--mantine-color-dark-3); opacity: 0.7; cursor: grab; }
+.gthumb:hover, .gthumb:active { opacity: 1; }
 .ghint { position: absolute; top: 8px; left: 16px; right: 16px; z-index: 1; font-size: 12px; color: var(--mantine-color-dimmed); pointer-events: none; }
 
 /* admin */
