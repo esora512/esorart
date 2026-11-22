@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
-import { Badge, Button, CloseButton, Divider, Group, Modal, Paper, SegmentedControl, Stack, Switch, Text, Textarea, Title } from '@mantine/core'
+import { Badge, Button, CloseButton, Divider, Group, Paper, SegmentedControl, Stack, Switch, Text, Textarea, Title } from '@mantine/core'
 import { mutate as refresh } from 'swr'
 import { Md, api, img, useApi } from './api'
 import ImageForm from './ImageForm'
@@ -94,6 +94,10 @@ export default function ImageView({ me, images }) {
       </div>
 
       <aside className="side">
+        {editing ? <>
+          <ImageForm key={image.id} image={image} images={images} onDone={() => setEditing(false)} />
+          <Button fullWidth mt="xs" variant="subtle" color="gray" onClick={() => setEditing(false)}>Cancel</Button>
+        </> : <>
         <Group justify="space-between" wrap="nowrap">
           <Title order={4}>{image.title}</Title>
           {!!me.is_admin && (
@@ -105,6 +109,7 @@ export default function ImageView({ me, images }) {
         </Group>
         <Text size="xs" c="dimmed">{image.date}</Text>
         {image.description && <Md>{image.description}</Md>}
+        </>}
         <Divider my="sm" />
 
         <Group justify="space-between">
@@ -147,10 +152,6 @@ export default function ImageView({ me, images }) {
           </Group>
         </Stack>
       </aside>
-
-      <Modal opened={editing} onClose={() => setEditing(false)} title="Edit drawing">
-        <ImageForm image={image} images={images} onDone={() => setEditing(false)} />
-      </Modal>
     </div>
   )
 }

@@ -43,6 +43,9 @@ with closing(sqlite3.connect(DB)) as c:
     CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY, image_id INT NOT NULL REFERENCES images ON DELETE CASCADE,
         user_id INT NOT NULL REFERENCES users ON DELETE CASCADE, body TEXT NOT NULL, shape TEXT, created_at INT);
     """)
+    for col in ("x", "y"):  # graph position set by dragging; NULL = auto layout. ALTER so existing DBs get it too
+        try: c.execute(f"ALTER TABLE images ADD COLUMN {col} REAL")
+        except sqlite3.OperationalError: pass
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["*"], allow_headers=["*"])
@@ -140,7 +143,7 @@ def img(iid: int, size: str, exp: int, sig: str):
 
 @app.get("/images")
 def images(_=Depends(user)):
-    rows = q("""SELECT id,title,description,date,w,h,
+    rows = q("""SELECT id,title,description,date,w,h,x,y,
                 (SELECT COUNT(*) FROM comments WHERE image_id=images.id) comments
                 FROM images ORDER BY date DESC, id DESC""")
     edges = q("SELECT parent, child FROM edges")
@@ -196,6 +199,17 @@ def edit(iid: int, b: ImageEdit, _=Depends(admin)):
 @app.delete("/images/{iid}")
 def delete_image(iid: int, _=Depends(admin)):
     q("DELETE FROM images WHERE id=?", (iid,))
+    return {"ok": True}
+
+
+class PosIn(BaseModel):
+    x: float
+    y: float
+
+
+@app.put("/images/{iid}/pos")
+def move(iid: int, b: PosIn, _=Depends(admin)):
+    q("UPDATE images SET x=?,y=? WHERE id=?", (b.x, b.y, iid))
     return {"ok": True}
 
 
