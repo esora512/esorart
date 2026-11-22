@@ -43,8 +43,10 @@ with closing(sqlite3.connect(DB)) as c:
     CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY, image_id INT NOT NULL REFERENCES images ON DELETE CASCADE,
         user_id INT NOT NULL REFERENCES users ON DELETE CASCADE, body TEXT NOT NULL, shape TEXT, created_at INT);
     """)
-    for col in ("x", "y"):  # graph position set by dragging; NULL = auto layout. ALTER so existing DBs get it too
-        try: c.execute(f"ALTER TABLE images ADD COLUMN {col} REAL")
+    # ALTER so existing DBs get new columns too. x/y: old dragged graph positions (unused now);
+    # branch: label for the branch of the graph that starts at this drawing
+    for col in ("x REAL", "y REAL", "branch TEXT"):
+        try: c.execute(f"ALTER TABLE images ADD COLUMN {col}")
         except sqlite3.OperationalError: pass
 
 app = FastAPI()
@@ -143,7 +145,7 @@ def img(iid: int, size: str, exp: int, sig: str):
 
 @app.get("/images")
 def images(_=Depends(user)):
-    rows = q("""SELECT id,title,description,date,w,h,x,y,
+    rows = q("""SELECT id,title,description,date,w,h,x,y,branch,
                 (SELECT COUNT(*) FROM comments WHERE image_id=images.id) comments
                 FROM images ORDER BY date DESC, id DESC""")
     edges = q("SELECT parent, child FROM edges")
@@ -162,6 +164,8 @@ def jpeg(im, size):
 
 
 def set_parents(iid, parents):
+    old = {e["parent"] for e in q("SELECT parent FROM edges WHERE child=?", (iid,))}
+    if old - set(parents): unbranch(iid)
     q("DELETE FROM edges WHERE child=?", (iid,))
     for p in parents:
         if p != iid: q("INSERT OR IGNORE INTO edges VALUES(?,?)", (p, iid))
@@ -202,6 +206,20 @@ def delete_image(iid: int, _=Depends(admin)):
     return {"ok": True}
 
 
+# a branch label belongs to where the drawing hangs in the graph, so it goes when the drawing is disconnected
+def unbranch(iid): q("UPDATE images SET branch=NULL WHERE id=?", (iid,))
+
+
+class BranchIn(BaseModel):
+    name: str = Field("", max_length=60)
+
+
+@app.put("/images/{iid}/branch")
+def set_branch(iid: int, b: BranchIn, _=Depends(admin)):
+    q("UPDATE images SET branch=? WHERE id=?", (b.name.strip() or None, iid))
+    return {"ok": True}
+
+
 class PosIn(BaseModel):
     x: float
     y: float
@@ -227,6 +245,7 @@ def add_edge(b: EdgeIn, _=Depends(admin)):
 @app.delete("/edges/{parent}/{child}")
 def del_edge(parent: int, child: int, _=Depends(admin)):
     q("DELETE FROM edges WHERE parent=? AND child=?", (parent, child))
+    unbranch(child)
     return {"ok": True}
 
 
