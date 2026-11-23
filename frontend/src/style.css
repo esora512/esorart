@@ -36,11 +36,24 @@ a { color: var(--mantine-color-blue-4); }
 
 /* graph */
 .graph { height: calc(100dvh - var(--top)); position: relative; }
-.gcanvas { position: absolute; inset: 0; }
-.gtools { position: absolute; right: 28px; bottom: 16px; }
-.gscroll { position: absolute; top: 8px; bottom: 8px; right: 4px; width: 14px; border-radius: 7px; background: rgb(255 255 255 / 4%); touch-action: none; cursor: pointer; z-index: 2; }
-.gthumb { width: 100%; border-radius: 7px; background: var(--mantine-color-dark-3); opacity: 0.7; cursor: grab; }
-.gthumb:hover, .gthumb:active { opacity: 1; }
+.gscroll { position: absolute; inset: 0; overflow: auto; outline: none; }
+.gcanvas { position: relative; margin: 0 auto; }
+.gcanvas svg { position: absolute; inset: 0; pointer-events: none; color: var(--mantine-color-dark-3); }
+.gedge { fill: none; stroke: currentColor; stroke-width: 2; }
+.ghit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
+.gedit { cursor: pointer; }
+.gedit:hover .gedge { stroke: var(--mantine-color-red-5); }
+.gnode { position: absolute; width: 150px; height: 160px; box-sizing: border-box; display: block; overflow: hidden;
+  border: 2px solid var(--mantine-color-dark-4); border-radius: 8px; background: var(--mantine-color-dark-6); color: #fff; text-decoration: none; }
+.gnode:hover { border-color: var(--mantine-color-dark-2); }
+.gnode.tip { border-color: var(--mantine-color-yellow-5); box-shadow: 0 0 12px var(--mantine-color-yellow-8); }
+.gnode.from { border-color: var(--mantine-color-blue-5); box-shadow: 0 0 12px var(--mantine-color-blue-7); }
+.gnode img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gtitle, .gbranch { position: absolute; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gtitle { left: 0; right: 0; bottom: 0; padding: 3px 6px; background: rgb(0 0 0 / 60%); }
+.gbranch { top: 6px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 16px); padding: 2px 8px;
+  border-radius: 999px; background: var(--mantine-color-violet-7); font-weight: 600; }
+.gtools { position: absolute; right: 16px; bottom: 16px; }
 
 /* admin */
 .preview { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px; }

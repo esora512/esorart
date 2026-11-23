@@ -43,11 +43,9 @@ with closing(sqlite3.connect(DB)) as c:
     CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY, image_id INT NOT NULL REFERENCES images ON DELETE CASCADE,
         user_id INT NOT NULL REFERENCES users ON DELETE CASCADE, body TEXT NOT NULL, shape TEXT, created_at INT);
     """)
-    # ALTER so existing DBs get new columns too. x/y: old dragged graph positions (unused now);
-    # branch: label for the branch of the graph that starts at this drawing
-    for col in ("x REAL", "y REAL", "branch TEXT"):
-        try: c.execute(f"ALTER TABLE images ADD COLUMN {col}")
-        except sqlite3.OperationalError: pass
+    # branch: label for the branch of the graph that starts at this drawing. ALTER so existing DBs get it too
+    try: c.execute("ALTER TABLE images ADD COLUMN branch TEXT")
+    except sqlite3.OperationalError: pass
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["*"], allow_headers=["*"])
@@ -145,7 +143,7 @@ def img(iid: int, size: str, exp: int, sig: str):
 
 @app.get("/images")
 def images(_=Depends(user)):
-    rows = q("""SELECT id,title,description,date,w,h,x,y,branch,
+    rows = q("""SELECT id,title,description,date,w,h,branch,
                 (SELECT COUNT(*) FROM comments WHERE image_id=images.id) comments
                 FROM images ORDER BY date DESC, id DESC""")
     edges = q("SELECT parent, child FROM edges")
@@ -218,17 +216,6 @@ class BranchIn(BaseModel):
 @app.put("/images/{iid}/branch")
 def set_branch(iid: int, b: BranchIn, _=Depends(admin)):
     q("UPDATE images SET branch=? WHERE id=?", (b.name.strip() or None, iid))
-    return {"ok": True}
-
-
-class PosIn(BaseModel):
-    x: float
-    y: float
-
-
-@app.put("/images/{iid}/pos")
-def move(iid: int, b: PosIn, _=Depends(admin)):
-    q("UPDATE images SET x=?,y=? WHERE id=?", (b.x, b.y, iid))
     return {"ok": True}
 
 
